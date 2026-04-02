@@ -4,6 +4,7 @@ repl.py
 '''
 
 from parser import str_to_tokens
+from lexer import tokens_to_nodes
 
 def get_line() -> str:
     return input("> ")
@@ -11,7 +12,9 @@ def get_line() -> str:
 def main():
     line = get_line()
     while line != "exit":
-        print(str_to_tokens(line))
+        tokens = str_to_tokens(line)
+        print('tokens:', tokens)
+        print('nodes:', tokens_to_nodes(tokens))
         line = get_line()
 
 if __name__ == "__main__":
