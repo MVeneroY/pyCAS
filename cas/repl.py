@@ -3,8 +3,8 @@ repl.py
 
 '''
 
-from parser import str_to_tokens
-from lexer import tokens_to_nodes
+from cas.parser import str_to_tokens
+from cas.lexer import tokens_to_nodes
 
 def get_line() -> str:
     return input("> ")

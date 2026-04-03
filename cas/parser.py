@@ -25,7 +25,6 @@ def get_token_type(string: str) -> TokenType:
     if isoperator(string): return TokenType.Operator
     if string.isnumeric(): return TokenType.Number
     if string.isalpha(): return TokenType.Symbol
-    if string[0] == '-' and string[1:].isnumeric: return TokenType.Number
     return None
 
 def next_char(string: str, i: int) -> str:
