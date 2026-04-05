@@ -20,7 +20,6 @@ def isoperator(string: str) -> bool:
     string == "(" or\
     string == ")"
     
-
 def get_token_type(string: str) -> TokenType:
     if isoperator(string): return TokenType.Operator
     if string.isnumeric(): return TokenType.Number
@@ -69,3 +68,12 @@ def str_to_tokens(string: str) -> list[str]:
                 index+= 1
 
     return tokens
+
+def next_token(tokens: list[str], i: int) -> str:
+    '''
+    Returns tokens[i+1]
+    If tokens[i] is the last item in the array, returns None
+    '''
+
+    if len(tokens) > i + 1: return tokens[i+1]
+    return None
