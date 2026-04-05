@@ -21,9 +21,13 @@ def isoperator(string: str) -> bool:
     string == ")"
     
 def get_token_type(string: str) -> TokenType:
+    '''
+    Note: Doesn't support decimal values or . 
+    Symbols only support 1-letter alphabetic strings
+    '''
     if isoperator(string): return TokenType.Operator
     if string.isnumeric(): return TokenType.Number
-    if string.isalpha(): return TokenType.Symbol
+    if string.isalpha() and len(string) == 1: return TokenType.Symbol
     return None
 
 def next_char(string: str, i: int) -> str:

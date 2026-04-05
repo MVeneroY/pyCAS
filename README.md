@@ -9,7 +9,7 @@ Mini Computer Algebra System using Python
 Run all tests:
 
 ```bash
-pyCas $ python -m unittest
+pyCas $ python -m unittest discover
 ```
 
 Run tests from a specific file:

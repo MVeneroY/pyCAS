@@ -4,7 +4,7 @@ repl.py
 '''
 
 from cas.parser import str_to_tokens
-from cas.lexer import tokens_to_nodes
+from cas.lexer import generate_expr
 
 def get_line() -> str:
     return input("> ")
@@ -13,8 +13,7 @@ def main():
     line = get_line()
     while line != "exit":
         tokens = str_to_tokens(line)
-        print('tokens:', tokens)
-        print('nodes:', tokens_to_nodes(tokens))
+        print('expr tree:', generate_expr(tokens).ops_to_string())
         line = get_line()
 
 if __name__ == "__main__":

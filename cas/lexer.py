@@ -123,7 +123,13 @@ def generate_factor(tokens: list[str], index: int = 0) -> ASTNode:
     x**7 -> Pow( x, 7 )
     -x^3 -> Mul( -1, Pow( x, 3 ) )
     '''
-    
+    def last_op(tokens):
+        curr = -1
+        for index, token in enumerate(tokens):
+            if token == '^':
+                curr = index
+        return curr
+
     if DEBUG: print('gen_fact', tokens)
     
     head = None
@@ -138,13 +144,32 @@ def generate_factor(tokens: list[str], index: int = 0) -> ASTNode:
         head.right = generate_factor(tokens[1:])
         return head
     
+    # ''' Node: last working version
+    # Powers (e.g. x^2) are represented as a single factor
+    # '''
+    # if len(tokens) > i + 2 and tokens[i+1] == '^':
+    #     head = ASTNode('^')
+    #     head.left = ASTNode(tokens[i])
+    #     head.right = ASTNode(tokens[i+2])
+    #     return head
+
     '''
-    Powers (e.g. x^2) are represented as a single factor
+    3x^2 -> Mul(3, Pow(x, 2))
+    x^2 -> Pow(x,2)
     '''
-    if len(tokens) > i + 2 and tokens[i+1] == '^':
+    pow_index = last_op(tokens)
+    if DEBUG: print(f'pow_index: {pow_index}')
+    if pow_index != -1:
         head = ASTNode('^')
-        head.left = ASTNode(tokens[i])
-        head.right = ASTNode(tokens[i+2])
+        head.right = ASTNode(tokens[pow_index+1]) # Note: only takes next token currently
+        head.left = ASTNode(tokens[pow_index-1])
+
+        if pow_index > 1:
+            temp = head
+            head = ASTNode('*')
+            head.right = temp
+            head.left = generate_factor(tokens[:pow_index-1])
+
         return head
     
     '''
