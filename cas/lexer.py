@@ -19,21 +19,13 @@ number  := whole number | decimal number
 symbol  := (a-z)
 '''
 
-DEBUG = True
+DEBUG = False
 
 from enum import Enum
 from cas.ast_nodes import ASTNode
 from cas.parser import TokenType, Token
 
-def tokens_to_nodes(tokens: list[str]) -> list[ASTNode]:
-    nodes = []
-
-    for token in tokens:
-        nodes.append(ASTNode(token))
-
-    return nodes
-
-def generate_expr(tokens: list[str]) -> ASTNode:
+def _generate_expr(tokens: list[Token]) -> ASTNode:
     '''
     Generates an expression from a list of tokens using the following grammar:
 
@@ -46,13 +38,13 @@ def generate_expr(tokens: list[str]) -> ASTNode:
     1 + 2 + 3 -> Add( Add( 1, 2 ), 3 )
     x*-2 -2 -> Sub( Mul( x , Mul( -1, 2) ), 2 )
     '''
-    def last_op(tokens: list[str]):
+    def last_op(tokens: list[Token]):
         curr = -1
         for index, token in enumerate(tokens):
-            if token == '+':
+            if token.literal() == '+':
                 curr = index
-            elif token == '-':
-                if index > 0 and tokens[index-1] != '*' and tokens[index-1] != '/':
+            elif token.literal() == '-':
+                if index > 0 and tokens[index-1].literal() != '*' and tokens[index-1].literal() != '/':
                     curr = index
         return curr
     
@@ -61,15 +53,15 @@ def generate_expr(tokens: list[str]) -> ASTNode:
     op_index = last_op(tokens)
     # print(tokens, op_index)
     if op_index == -1:
-        return generate_term(tokens)
+        return _generate_term(tokens)
     
-    head = ASTNode(tokens[op_index])
-    head.right = generate_term(tokens[op_index+1:])
-    head.left = generate_expr(tokens[0:op_index])
+    head = ASTNode.fromtoken(tokens[op_index])
+    head.right = _generate_term(tokens[op_index+1:])
+    head.left = _generate_expr(tokens[0:op_index])
     return head
 
 
-def generate_term(tokens: list[str]) -> ASTNode:
+def _generate_term(tokens: list[Token]) -> ASTNode:
     '''
     (Currently) Generates a term from a list of tokens based on the following grammar:
     (Currently) factors only consist of monomials e.g. x, 4, -1, x^5 (no (x-1))
@@ -85,10 +77,10 @@ def generate_term(tokens: list[str]) -> ASTNode:
     2 * 5 * x -> Mul ( Mul ( 2, 5 ) , x )
     -2 * x -> Mul( Mul( -1, 2 ), x)
     '''
-    def last_op(tokens: list[str]):
+    def last_op(tokens: list[Token]):
         curr = -1
         for index, token in enumerate(tokens):
-            if token == '*' or token == '/':
+            if token.literal() == '*' or token.literal() == '/':
                 curr = index
         return curr
 
@@ -101,9 +93,9 @@ def generate_term(tokens: list[str]) -> ASTNode:
     if op_index == -1:
         return _generate_factor(tokens)
     
-    head = ASTNode(tokens[op_index])
+    head = ASTNode.fromtoken(tokens[op_index])
     head.right = _generate_factor(tokens[op_index+1:])
-    head.left = generate_term(tokens[0:op_index])
+    head.left = _generate_term(tokens[0:op_index])
     return head
 
 def _generate_factor(tokens: list[Token], index: int = 0) -> ASTNode:
@@ -140,15 +132,6 @@ def _generate_factor(tokens: list[Token], index: int = 0) -> ASTNode:
         head.left = ASTNode('-1', TokenType.Number)
         head.right = _generate_factor(tokens[1:])
         return head
-    
-    # ''' Node: last working version
-    # Powers (e.g. x^2) are represented as a single factor
-    # '''
-    # if len(tokens) > i + 2 and tokens[i+1] == '^':
-    #     head = ASTNode('^')
-    #     head.left = ASTNode(tokens[i])
-    #     head.right = ASTNode(tokens[i+2])
-    #     return head
 
     '''
     3x^2 -> Mul(3, Pow(x, 2))

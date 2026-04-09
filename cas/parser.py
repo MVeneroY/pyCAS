@@ -79,6 +79,12 @@ def str_to_tokens(string: str) -> list[Token]:
         (token_type := Token.get_token_type(item)) == TokenType.Symbol or\
         token_type == TokenType.Operator
         ]
+    
+    '''
+    If there are non numerical tokens in the string, the string consists of a single number
+    '''
+    if len(non_num_indices) == 0: 
+        return [Token(string)]
 
     '''
     numerical index slices. Includes all whole number and decimal values

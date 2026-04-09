@@ -1,8 +1,8 @@
 import unittest
 from cas.parser import str_to_tokens
-from cas.lexer import generate_factor
-from cas.lexer import generate_term
-from cas.lexer import generate_expr
+from cas.lexer import _generate_factor as generate_factor
+from cas.lexer import _generate_term as generate_term
+from cas.lexer import _generate_expr as generate_expr
 
 class TestLexerMethods(unittest.TestCase):
 
