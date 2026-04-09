@@ -14,16 +14,16 @@ factor  := number
         |  factor ^ number
         |  - factor
 
-number  := (0-9)+
+number  := whole number | decimal number
 
 symbol  := (a-z)
 '''
 
-DEBUG = False
+DEBUG = True
 
 from enum import Enum
 from cas.ast_nodes import ASTNode
-from cas.parser import TokenType, get_token_type, next_token
+from cas.parser import TokenType, Token
 
 def tokens_to_nodes(tokens: list[str]) -> list[ASTNode]:
     nodes = []
@@ -99,20 +99,17 @@ def generate_term(tokens: list[str]) -> ASTNode:
     '''
     op_index = last_op(tokens)
     if op_index == -1:
-        return generate_factor(tokens)
+        return _generate_factor(tokens)
     
     head = ASTNode(tokens[op_index])
-    head.right = generate_factor(tokens[op_index+1:])
+    head.right = _generate_factor(tokens[op_index+1:])
     head.left = generate_term(tokens[0:op_index])
     return head
 
-def generate_factor(tokens: list[str], index: int = 0) -> ASTNode:
+def _generate_factor(tokens: list[Token], index: int = 0) -> ASTNode:
     '''
-    returns: 
-    ASTNode: head of the node tree
-    int: index of the last used token
-
-    (Currently) Generates a factor from a list of tokens based on the following grammar:
+    Generates a factor from a list of tokens, under the assumption that the list is in the
+    language of the following grammar:
 
     factor  := -1 * factor
             |  symbol | number ^ symbol | number
@@ -122,26 +119,26 @@ def generate_factor(tokens: list[str], index: int = 0) -> ASTNode:
     -2   -> Mul( -1, 2 )
     x**7 -> Pow( x, 7 )
     -x^3 -> Mul( -1, Pow( x, 3 ) )
+    .4y -> Mul ( 0.4, y)
     '''
-    def last_op(tokens):
+    def last_pow(tokens: list[Token]):
         curr = -1
         for index, token in enumerate(tokens):
-            if token == '^':
+            if token.literal() == '^':
                 curr = index
         return curr
 
     if DEBUG: print('gen_fact', tokens)
     
     head = None
-    i = index
 
     '''
     Negative numbers such as -2 are split into -1*2
     '''
-    if tokens[0] == '-':
+    if tokens[0].literal() == '-':
         head = ASTNode('*')
         head.left = ASTNode('-1', TokenType.Number)
-        head.right = generate_factor(tokens[1:])
+        head.right = _generate_factor(tokens[1:])
         return head
     
     # ''' Node: last working version
@@ -157,18 +154,18 @@ def generate_factor(tokens: list[str], index: int = 0) -> ASTNode:
     3x^2 -> Mul(3, Pow(x, 2))
     x^2 -> Pow(x,2)
     '''
-    pow_index = last_op(tokens)
+    pow_index = last_pow(tokens)
     if DEBUG: print(f'pow_index: {pow_index}')
     if pow_index != -1:
         head = ASTNode('^')
-        head.right = ASTNode(tokens[pow_index+1]) # Note: only takes next token currently
-        head.left = ASTNode(tokens[pow_index-1])
+        head.right = ASTNode.fromtoken(tokens[pow_index+1]) # Note: only takes next token currently
+        head.left = ASTNode.fromtoken(tokens[pow_index-1])
 
         if pow_index > 1:
             temp = head
             head = ASTNode('*')
             head.right = temp
-            head.left = generate_factor(tokens[:pow_index-1])
+            head.left = _generate_factor(tokens[:pow_index-1])
 
         return head
     
@@ -177,8 +174,9 @@ def generate_factor(tokens: list[str], index: int = 0) -> ASTNode:
     '''
     if len(tokens) > 1:
         head = ASTNode('*')
-        head.right = ASTNode(tokens[-1])
-        head.left = generate_factor(tokens[:-1])
+        head.right = ASTNode.fromtoken(tokens[-1])
+        head.left = _generate_factor(tokens[:-1])
         return head
 
-    return ASTNode(tokens[0])
+    return ASTNode.fromtoken(tokens[0])
+
