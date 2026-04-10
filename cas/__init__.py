@@ -1,2 +1,3 @@
-from .parser import str_to_tokens as get_tokens
+from .parser import Token, str_to_tokens
 from .expression import Expression
+from .engine import substitute, evaluate

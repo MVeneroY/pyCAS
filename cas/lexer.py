@@ -98,7 +98,7 @@ def _generate_term(tokens: list[Token]) -> ASTNode:
     head.left = _generate_term(tokens[0:op_index])
     return head
 
-def _generate_factor(tokens: list[Token], index: int = 0) -> ASTNode:
+def _generate_factor(tokens: list[Token]) -> ASTNode:
     '''
     Generates a factor from a list of tokens, under the assumption that the list is in the
     language of the following grammar:
