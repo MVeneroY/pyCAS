@@ -3,8 +3,8 @@ expression.py
 '''
 
 from .ast_nodes import ASTNode
-from .parser import str_to_tokens
-from .lexer import _generate_expr
+from .lexer import str_to_tokens
+from .parser import _generate_expr
 from typing_extensions import Self
 import copy
 

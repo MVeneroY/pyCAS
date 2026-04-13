@@ -1,120 +1,165 @@
 '''
-parser.py
+Grammar:
 
+expr    := term
+        |  expr + term
+        |  expr - term
+
+term    := factor
+        |  term * factor
+        |  term / factor
+
+factor  := number
+        |  variable
+        |  factor ^ number
+        |  - factor
+
+number  := whole number | decimal number
+
+symbol  := (a-z)
 '''
 
+DEBUG = False
+
 from enum import Enum
-import regex as re
+from cas.ast_nodes import ASTNode
+from cas.lexer import TokenType, Token
 
-class TokenType(Enum):
-    Number = 1
-    Symbol = 2
-    Operator = 3
+def _generate_expr(tokens: list[Token]) -> ASTNode:
+    '''
+    Generates an expression from a list of tokens using the following grammar:
 
-class Token():
-    _literal: str
-    _token_type: TokenType
+    expr    := term
+            |  expr + term
+            |  expr - term
 
-    def __init__(self, literal: str):
-        self._literal = literal
-        self._token_type = Token.get_token_type(literal)
-
-    def __repr__(self) -> str:
-        return self._literal
+    ex:
+    3*x + 4 -> Add( Mul( 3, x ), 4 )
+    1 + 2 + 3 -> Add( Add( 1, 2 ), 3 )
+    x*-2 -2 -> Sub( Mul( x , Mul( -1, 2) ), 2 )
+    '''
+    def last_op(tokens: list[Token]):
+        curr = -1
+        for index, token in enumerate(tokens):
+            if token.literal() == '+':
+                curr = index
+            elif token.literal() == '-':
+                if index > 0 and tokens[index-1].literal() != '*' and tokens[index-1].literal() != '/':
+                    curr = index
+        return curr
     
-    def __str__(self) -> str:
-        return self._literal
+    if DEBUG: print('gen_expr', tokens)
+
+    op_index = last_op(tokens)
+    # print(tokens, op_index)
+    if op_index == -1:
+        return _generate_term(tokens)
     
-    def literal(self) -> str:
-        return self._literal
-
-    def type(self) -> TokenType:
-        return self._token_type
-
-    def get_token_type(string: str) -> TokenType:
-        '''
-        Note: Only supports 1-letter alphabetic strings
-        '''
-        if isoperator(string): return TokenType.Operator
-        if is_numeric(string): return TokenType.Number
-        if string.isalpha() and len(string) == 1: return TokenType.Symbol
-        return None
+    head = ASTNode.fromtoken(tokens[op_index])
+    head.right = _generate_term(tokens[op_index+1:])
+    head.left = _generate_expr(tokens[0:op_index])
+    return head
 
 
-def isoperator(string: str) -> bool:
-    return string == "+" or\
-    string == "-" or\
-    string == "*" or\
-    string == "/" or\
-    string == "^" or\
-    string == "(" or\
-    string == ")"
+def _generate_term(tokens: list[Token]) -> ASTNode:
+    '''
+    (Currently) Generates a term from a list of tokens based on the following grammar:
+    (Currently) factors only consist of monomials e.g. x, 4, -1, x^5 (no (x-1))
+
+    term    := factor
+            |  term * factor
+            |  term / factor
+
+    ex:
+    2    -> 2
+    2*3  -> Mul ( 2 , 3 )
+    2 / 5 * x -> Mul ( Div ( 2, 5 ), x )
+    2 * 5 * x -> Mul ( Mul ( 2, 5 ) , x )
+    -2 * x -> Mul( Mul( -1, 2 ), x)
+    '''
+    def last_op(tokens: list[Token]):
+        curr = -1
+        for index, token in enumerate(tokens):
+            if token.literal() == '*' or token.literal() == '/':
+                curr = index
+        return curr
+
+    if DEBUG: print('gen_term', tokens)
+
+    '''
+    base case: this is the last factor in the term
+    '''
+    op_index = last_op(tokens)
+    if op_index == -1:
+        return _generate_factor(tokens)
     
-def is_symbol(string: str) -> bool:
-    return len(string) == 1 and string.isalpha()
+    head = ASTNode.fromtoken(tokens[op_index])
+    head.right = _generate_factor(tokens[op_index+1:])
+    head.left = _generate_term(tokens[0:op_index])
+    return head
 
-def is_numeric(string: str) -> bool:
-    match = re.match(pattern=r'\d*\.?\d+', string=string) 
-    return match is not None and match.captures()[0] == string
-
-# def next_char(string: str, i: int) -> str:
-#     if len(string) - 1 == i: return ""
-#     return string[i+1]
-
-def str_to_tokens(string: str) -> list[Token]:
+def _generate_factor(tokens: list[Token]) -> ASTNode:
     '''
-    Returns a list of Token objects from a string
+    Generates a factor from a list of tokens, under the assumption that the list is in the
+    language of the following grammar:
+
+    factor  := -1 * factor
+            |  symbol | number ^ symbol | number
+            |  symbol | number
+
+    ex:
+    -2   -> Mul( -1, 2 )
+    x**7 -> Pow( x, 7 )
+    -x^3 -> Mul( -1, Pow( x, 3 ) )
+    .4y -> Mul ( 0.4, y)
     '''
+    def last_pow(tokens: list[Token]):
+        curr = -1
+        for index, token in enumerate(tokens):
+            if token.literal() == '^':
+                curr = index
+        return curr
+
+    if DEBUG: print('gen_fact', tokens)
     
-    tokens: list[Token] = []
-    string = string.replace('**', '^').replace(' ', '')
+    head = None
 
     '''
-    Non numerical indices. Currently relies on the restriction that all symbols
-    be of length 1.
+    Negative numbers such as -2 are split into -1*2
     '''
-    non_num_indices: list[tuple[int, TokenType]] = [
-        (index, token_type) for \
-        (index, item) in enumerate(string) if\
-        (token_type := Token.get_token_type(item)) == TokenType.Symbol or\
-        token_type == TokenType.Operator
-        ]
+    if tokens[0].literal() == '-':
+        head = ASTNode('*')
+        head.left = ASTNode('-1', TokenType.Number)
+        head.right = _generate_factor(tokens[1:])
+        return head
+
+    '''
+    3x^2 -> Mul(3, Pow(x, 2))
+    x^2 -> Pow(x,2)
+    '''
+    pow_index = last_pow(tokens)
+    if DEBUG: print(f'pow_index: {pow_index}')
+    if pow_index != -1:
+        head = ASTNode('^')
+        head.right = ASTNode.fromtoken(tokens[pow_index+1]) # Note: only takes next token currently
+        head.left = ASTNode.fromtoken(tokens[pow_index-1])
+
+        if pow_index > 1:
+            temp = head
+            head = ASTNode('*')
+            head.right = temp
+            head.left = _generate_factor(tokens[:pow_index-1])
+
+        return head
     
     '''
-    If there are non numerical tokens in the string, the string consists of a single number
+    2x and xy are represented as 2*x and x*y
     '''
-    if len(non_num_indices) == 0: 
-        return [Token(string)]
+    if len(tokens) > 1:
+        head = ASTNode('*')
+        head.right = ASTNode.fromtoken(tokens[-1])
+        head.left = _generate_factor(tokens[:-1])
+        return head
 
-    '''
-    numerical index slices. Includes all whole number and decimal values
-    '''
-    num_index_slices: list[tuple[int, int]] = []
-    if non_num_indices[0][0] > 0:
-        num_index_slices.append((0,non_num_indices[0][0]))
-    num_index_slices.extend([(start+1, end) for ((start, _), (end, _)) in\
-                              zip(non_num_indices[0:-1], non_num_indices[1:]) if\
-                                end > start+1])
-    if non_num_indices[-1][0] < len(string):
-        num_index_slices.append((non_num_indices[-1][0] + 1, len(string)))
+    return ASTNode.fromtoken(tokens[0])
 
-    index = 0
-    while index < len(string) and (len(non_num_indices) > 0 or len(num_index_slices) > 0):
-        if len(non_num_indices) > 0 and index == non_num_indices[0][0]:
-            tokens.append(Token(string[non_num_indices.pop(0)[0]]))
-            index += 1
-        elif len(num_index_slices) > 0 and index == num_index_slices[0][0]:
-            start, end = num_index_slices.pop(0)
-            tokens.append(Token(string[start:end]))
-            index = end
-
-    return tokens
-
-def next_token(tokens: list[str], i: int) -> str:
-    '''
-    Returns tokens[i+1]
-    If tokens[i] is the last item in the array, returns None
-    '''
-
-    if len(tokens) > i + 1: return tokens[i+1]
-    return None

@@ -4,8 +4,8 @@ ast_nodes.py
 '''
 
 from typing_extensions import Self
-from cas.parser import TokenType
-from cas.parser import Token
+from .lexer import TokenType
+from .lexer import Token
 
 class ASTNode:
     left: Self = None
