@@ -10,7 +10,7 @@ class TokenType(Enum):
     Sym = 1  # x, y
     Num = 2
     Frac = 3
-    Add = 4  # +, -, *, /, ^ mod, !
+    Add = 4
     Sub = 5
     Mul = 6
     Div = 7
@@ -63,9 +63,6 @@ class Symbol:
                 Symbol.namespace.append(symbol)
 
 
-sym = Symbol()
-
-
 class Token:
     _literal: str
     _type: TokenType
@@ -82,7 +79,8 @@ class Token:
 
 
 def gettokens(string: str) -> list[Token]:
-    """
+    """Tokenize an expression and return a list of Token objects
+
     Args:
         string (str): expression string
 
@@ -96,6 +94,7 @@ def gettokens(string: str) -> list[Token]:
     ** -> ^
     """
     string = string.replace(" ", "").replace("**", "^")
+    string = re.sub(r'\+{2,}', r'\+', string)
 
     matches = [
         match

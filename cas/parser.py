@@ -1,165 +1,413 @@
-'''
-Grammar:
+"""
+_parser_balance.py
+"""
 
-expr    := term
-        |  expr + term
-        |  expr - term
+from cas.ast_node import ASTNode
+from cas.lexer import gettokens, Token
+from cas.lexer import TokenType as TType
 
-term    := factor
-        |  term * factor
-        |  term / factor
 
-factor  := number
-        |  variable
-        |  factor ^ number
-        |  - factor
+def _parsetokens(tokens: list[Token]) -> ASTNode:
+    """Parse tokens from an expression and return an AST tree
 
-number  := whole number | decimal number
+    Args:
+        tokens (list[Token]): Tokenized expression
 
-symbol  := (a-z)
-'''
+    Returns:
+        ASTNode: Head of the AST tree
+    """
+    head: ASTNode = None
+    pm_indices = [
+        index
+        for (index, token) in enumerate(tokens)
+        if index > 0
+        and is_pm(token)
+        and not is_pm(tokens[index - 1])
+        and not token_inside_par(tokens, index)
+    ]
 
-DEBUG = False
+    """
+    Case: only 1 term in expression
+    """
+    if not pm_indices:
+        # if expression := (expression), remove parenthesis
+        if (
+            len(tokens) > 1
+            and tokens[0].type() == TType.LPAR
+            and tokens[-1].type() == TType.RPAR
+        ):
+            return _parsetokens(tokens[1:-1])
 
-from enum import Enum
-from cas.ast_nodes import ASTNode
-from cas.lexer import TokenType, Token
+        # leading negative
+        if tokens[0].type() == TType.Sub:
+            # print(f'a, {tokens[1:]=}')
+            return neg_term(tokens[1:])
 
-def _generate_expr(tokens: list[Token]) -> ASTNode:
-    '''
-    Generates an expression from a list of tokens using the following grammar:
+        # leading plus symbol
+        if tokens[0].type() == TType.Add:
+            return _parsetokens(tokens[1:])
 
-    expr    := term
-            |  expr + term
-            |  expr - term
+        return _parse_term(tokens)
 
-    ex:
-    3*x + 4 -> Add( Mul( 3, x ), 4 )
-    1 + 2 + 3 -> Add( Add( 1, 2 ), 3 )
-    x*-2 -2 -> Sub( Mul( x , Mul( -1, 2) ), 2 )
-    '''
-    def last_op(tokens: list[Token]):
-        curr = -1
-        for index, token in enumerate(tokens):
-            if token.literal() == '+':
-                curr = index
-            elif token.literal() == '-':
-                if index > 0 and tokens[index-1].literal() != '*' and tokens[index-1].literal() != '/':
-                    curr = index
-        return curr
-    
-    if DEBUG: print('gen_expr', tokens)
+    """
+    Case: multiple terms in expression
+    """
+    head = ASTNode(Token("+", TType.Add))
+    i = 0
+    pm_index = -1
+    while i < len(tokens):
+        if pm_indices:
+            # ignore leading +
+            if pm_index == -1 and tokens[0].type() == TType.Add:
+                i += 1
+            # account for leading -
+            elif pm_index == -1 and tokens[0].type() == TType.Sub:
+                pm_index = pm_indices.pop(0)
+                head.add_child(neg_term(tokens[i:pm_index]))
+            else:
+                if tokens[pm_index].type() == TType.Sub:
+                    pm_index = pm_indices.pop(0)
+                    head.add_child(neg_term(tokens[i:pm_index]))
+                else:
+                    pm_index = pm_indices.pop(0)
+                    head.add_child(_parsetokens(tokens[i:pm_index]))
+                i = pm_index + 1
 
-    op_index = last_op(tokens)
-    # print(tokens, op_index)
-    if op_index == -1:
-        return _generate_term(tokens)
-    
-    head = ASTNode.fromtoken(tokens[op_index])
-    head.right = _generate_term(tokens[op_index+1:])
-    head.left = _generate_expr(tokens[0:op_index])
+        elif pm_index != -1:
+            if tokens[pm_index].type() == TType.Sub:
+                head.add_child(neg_term(tokens[i:]))
+            else:
+                head.add_child(_parsetokens(tokens[i:]))
+            break
     return head
 
 
-def _generate_term(tokens: list[Token]) -> ASTNode:
-    '''
-    (Currently) Generates a term from a list of tokens based on the following grammar:
-    (Currently) factors only consist of monomials e.g. x, 4, -1, x^5 (no (x-1))
+def _parse_term(term: list[Token]) -> ASTNode:
+    """Parse tokens from a term and return an AST tree
 
-    term    := factor
-            |  term * factor
-            |  term / factor
+    Args:
+        term (list[Token]): tokenized term
 
-    ex:
-    2    -> 2
-    2*3  -> Mul ( 2 , 3 )
-    2 / 5 * x -> Mul ( Div ( 2, 5 ), x )
-    2 * 5 * x -> Mul ( Mul ( 2, 5 ) , x )
-    -2 * x -> Mul( Mul( -1, 2 ), x)
-    '''
-    def last_op(tokens: list[Token]):
-        curr = -1
-        for index, token in enumerate(tokens):
-            if token.literal() == '*' or token.literal() == '/':
-                curr = index
-        return curr
+    Returns:
+        ASTNode: head of an AST tree
+    """
+    md_indices = [
+        index
+        for (index, token) in enumerate(term)
+        if (token.type() == TType.Mul or token.type() == TType.Div)
+        and not token_inside_par(term, index)
+    ]
 
-    if DEBUG: print('gen_term', tokens)
+    """
+    base case: no * or / signs
+    """
+    if not md_indices:
+        return _parse_factor(term)
 
-    '''
-    base case: this is the last factor in the term
-    '''
-    op_index = last_op(tokens)
-    if op_index == -1:
-        return _generate_factor(tokens)
-    
-    head = ASTNode.fromtoken(tokens[op_index])
-    head.right = _generate_factor(tokens[op_index+1:])
-    head.left = _generate_term(tokens[0:op_index])
+    head = ASTNode(Token("*", TType.Mul))
+    i = 0
+    md_index = -1
+    while i < len(term):
+        # first factor
+        if md_index == -1:
+            md_index = md_indices.pop(0)
+            head.add_child(_parse_factor(term[i:md_index]))
+            i = md_index + 1
+
+        # remaining factors: have a * or / behind
+        elif term[md_index].type() == TType.Div:
+            """
+            Express a/b as a(b)^-1
+            """
+            if not md_indices:
+                head.add_child(inverse_factor(term[i:]))
+                break
+
+            md_index = md_indices.pop(0)
+            head.add_child(inverse_factor(term[i:md_index]))
+            i = md_index + 1
+
+        elif term[md_index].type() == TType.Mul:
+            if not md_indices:
+                head.add_child(_parse_factor(term[i:]))
+                break
+
+            md_index = md_indices.pop(0)
+            head.add_child(_parse_factor(term[i:md_index]))
+            i = md_index + 1
+
     return head
 
-def _generate_factor(tokens: list[Token]) -> ASTNode:
-    '''
-    Generates a factor from a list of tokens, under the assumption that the list is in the
-    language of the following grammar:
 
-    factor  := -1 * factor
-            |  symbol | number ^ symbol | number
-            |  symbol | number
+def _parse_factor(factor: list[Token]) -> ASTNode:
+    """Parse tokens on a factor and return its AST tree
 
-    ex:
-    -2   -> Mul( -1, 2 )
-    x**7 -> Pow( x, 7 )
-    -x^3 -> Mul( -1, Pow( x, 3 ) )
-    .4y -> Mul ( 0.4, y)
-    '''
-    def last_pow(tokens: list[Token]):
-        curr = -1
-        for index, token in enumerate(tokens):
-            if token.literal() == '^':
-                curr = index
-        return curr
+    Args:
+        factor (list[Token]): _description_
 
-    if DEBUG: print('gen_fact', tokens)
-    
-    head = None
+    Returns:
+        ASTNode: head of the AST tree
+    """
 
-    '''
-    Negative numbers such as -2 are split into -1*2
-    '''
-    if tokens[0].literal() == '-':
-        head = ASTNode('*')
-        head.left = ASTNode('-1', TokenType.Number)
-        head.right = _generate_factor(tokens[1:])
-        return head
+    """    
+    Case: factor := (expr)
+    """
+    if expr_inside_par(factor):
+        return _parsetokens(factor)
+    """    
+    Case: factor is a function
+    """
+    if is_func(factor):
+        return func_term(factor)
 
-    '''
-    3x^2 -> Mul(3, Pow(x, 2))
-    x^2 -> Pow(x,2)
-    '''
-    pow_index = last_pow(tokens)
-    if DEBUG: print(f'pow_index: {pow_index}')
-    if pow_index != -1:
-        head = ASTNode('^')
-        head.right = ASTNode.fromtoken(tokens[pow_index+1]) # Note: only takes next token currently
-        head.left = ASTNode.fromtoken(tokens[pow_index-1])
+    if len(factor) == 1:
+        return ASTNode(factor[0])
 
-        if pow_index > 1:
-            temp = head
-            head = ASTNode('*')
-            head.right = temp
-            head.left = _generate_factor(tokens[:pow_index-1])
+    """
+    ranges of power expressions in the factor
+    """
+    pow_ranges = [
+        {"start": (ran := powrange(factor, index))[0], "end": ran[1], "index": index}
+        for (index, token) in enumerate(factor)
+        if token.type() == TType.Pow and not token_inside_par(factor, index)
+    ]
 
-        return head
-    
-    '''
-    2x and xy are represented as 2*x and x*y
-    '''
-    if len(tokens) > 1:
-        head = ASTNode('*')
-        head.right = ASTNode.fromtoken(tokens[-1])
-        head.left = _generate_factor(tokens[:-1])
-        return head
+    head = ASTNode(Token("*", TType.Mul))
+    i = 0
+    pow_range = None
+    while i < len(factor):
+        if pow_ranges and pow_range is None:
+            pow_range = pow_ranges.pop(0)
 
-    return ASTNode.fromtoken(tokens[0])
+        if pow_range is not None and i == pow_range["start"]:
+            head.add_child(pow_factor(factor, range=pow_range))
+            i = pow_range["end"] + 1
+            pow_range = None
 
+        elif token_is_func(factor[i]):
+            end = find_closing_par(factor[i + 1 :])
+            head.add_child(func_term(factor[i : end + 1]))
+            i = end + 1
+
+        elif factor[i].type() == TType.LPAR:
+            end = find_closing_par(factor[i:])
+            head.add_child(_parsetokens(factor[i : end + 1]))
+            i = end + 1
+
+        else:
+            head.add_child(ASTNode(factor[i]))
+            i += 1
+
+    return head
+
+
+def neg_term(term: list[Token]) -> ASTNode:
+    """Produce an expression tree equivalent to: -term
+
+    Args:
+        term (list[Token]): tokenized term
+
+    Returns:
+        ASTNode: head of the AST tree
+    """
+    head = ASTNode(Token("*", TType.Mul))
+    head.add_child(ASTNode(Token("-1", TType.Num)))
+    head.add_child(_parsetokens(term))
+    return head
+
+
+def pow_factor(expression: list[Token], range: dict[str, int]) -> ASTNode:
+    """Produce the power tree of the factor in an expression located at (range[start], range[end])
+
+    Args:
+        factor (list[Token]): Tokenized expression
+        range (dict[str, int]): range data: start, end, index (of power token)
+
+    Returns:
+        ASTNode: head of the power tree
+    """
+    assert range.keys() == set(["start", "end", "index"])
+
+    start = range["start"]
+    pow_index = range["index"]
+    end = range["end"]
+    head = ASTNode(expression[pow_index])
+    head.add_child(_parsetokens(expression[start:pow_index]))
+    head.add_child(_parsetokens(expression[pow_index + 1 : end + 1]))
+    return head
+
+
+def inverse_factor(factor: list[Token]) -> ASTNode:
+    """Produce an expression tree equivalent to: 1/factor
+
+    Args:
+        factor (list[Token]): tokenized factor
+
+    Returns:
+        ASTNode: head of the AST tree
+    """
+    head = ASTNode(Token("^", TType.Div))
+    head.add_child(_parse_factor(factor))
+    head.add_child(ASTNode(Token("-1", TType.Num)))
+    return head
+
+
+def func_term(term: list[Token]) -> ASTNode:
+    """Produce the expression tree of the function term.
+    Currently supports: sqrt, sin, cos, tan
+
+    Args:
+        term (list[Token]): Tokenized func term
+
+    Returns:
+        ASTNode: head of the AST tree
+    """
+    head = ASTNode(term[0])
+    head.add_child(_parsetokens(term[1:]))
+    return head
+
+
+def is_pm(token: Token) -> bool:
+    return token.type() == TType.Add or token.type() == TType.Sub
+
+
+def token_is_func(token: Token) -> bool:
+    """Check if a token is of func type
+
+    Args:
+        token (Token): Token object
+
+    Returns:
+        bool:
+    """
+    return (
+        token.type() == TType.SIN
+        or token.type() == TType.COS
+        or token.type() == TType.TAN
+        or token.type() == TType.SQRT
+    )
+
+
+def is_func(expression: list[Token]) -> bool:
+    """Check if an _expression_ can be expanded as expression := func(expression)
+
+    Args:
+        expression (list[Token]): list of Token objects
+
+    Returns:
+        bool: _True_ if the expression is a function
+    """
+    if len(expression) <= 3:
+        return False
+    return token_is_func(expression[0]) and expr_inside_par(expression[1:])
+
+
+def powrange(tokens: list[Token], pow_index: int) -> tuple[int, int]:
+    """Returns the start and end index of a power expression in a token list
+
+    Args:
+        tokens (list[Token]): list of Token objects
+        pow_index (int): index of the power ttype token in _tokens_
+
+    Returns:
+        tuple[int, int]: (_start_, _end_) indices of the power expression
+    """
+    start, end = pow_index - 1, pow_index + 1
+    if tokens[end].type() == TType.LPAR:
+        end = find_closing_par(tokens[end:])
+
+    if tokens[start].type() == TType.RPAR:
+        start = find_closing_par(tokens[:pow_index], reverse=True)
+        if start - 1 >= 0 and is_func(tokens[start - 1 : pow_index]):
+            start -= 1
+
+    return start, end
+
+
+def expr_inside_par(expression: list[Token]) -> bool:
+    """Check if an _expression_ can be expanded as expression := (expression)
+
+    Args:
+        expression (list[Token]): list of Token objects
+
+    Returns:
+        bool: _True_ if the expression is enclosed in parentheses
+    """
+    return (
+        expression[0].type() == TType.LPAR
+        and find_closing_par(expression) == len(expression) - 1
+    )
+
+
+def token_inside_par(tokens: list[Token], index: int) -> bool:
+    """Check if a token is surrounded by matching parentheses
+
+    Args:
+        tokens (list[Token]): list of Token objects
+        index (int): index of Token object in list
+
+    Returns:
+        bool: _True_ if Token object is inside parenthesis
+    """
+    return count_par(tokens[index + 1 :]) != 0 and count_par(tokens[:index:-1]) != 0
+
+
+def find_closing_par(tokens: list[Token], reverse: bool = False) -> int:
+    """Find the index of the parenthesis matching the one at the beginning of the token list
+
+    Args:
+        tokens (list[Token]): list of Token objects
+
+    Returns:
+        int: index of the first parenthesis
+    """
+    p_count = 0
+    step = -1 if reverse else 1
+    for index, token in enumerate(tokens[::step]):
+        if token.type() == TType.LPAR:
+            p_count += 1
+        elif token.type() == TType.RPAR:
+            p_count -= 1
+
+        if p_count == 0:
+            return len(tokens) - index - 1 if reverse else index
+    return -1
+
+
+def count_par(tokens: list[Token]) -> int:
+    """Returns 0 if the parenthesis tokens are balanced
+
+    Args:
+        tokens (list[Token]): list of Token objects
+
+    Returns:
+        int: 0 if balanced, the magnitude of the imbalance othewise
+    """
+    count = 0
+    for token in tokens:
+        if token.type() == TType.LPAR:
+            count += 1
+        if token.type() == TType.RPAR:
+            count -= 1
+    return count
+
+
+def find_next_tok(tokens: list[Token], ttype: TType, greedy: bool = False) -> int:
+    """Find the index of the next token of type **ttype**
+
+    Args:
+        tokens (list[Token]): list of Token objects
+        ttype (TType): Token Type to be searched
+        greedy (bool, optional): If true, returns the last token instance of ttype. Defaults to False.
+
+    Returns:
+        int: index of the found token
+    """
+    index = -1
+    for i, token in enumerate(tokens):
+        if token.type() == ttype:
+            if not greedy:
+                return i
+            index = i
+
+    return index
