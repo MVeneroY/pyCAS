@@ -1,3 +1,3 @@
-from .lexer import Token
+from .lexer import Token, TokenType
 from .expression import Expression
-from .engine import substitute, evaluate
+from .engine import subs, eval

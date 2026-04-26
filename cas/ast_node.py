@@ -4,6 +4,7 @@ ast_node.py
 
 from typing_extensions import Self
 from cas.lexer import Token
+from cas.lexer import TokenType as TType
 
 
 class ASTNode:
@@ -16,23 +17,50 @@ class ASTNode:
 
     def __str__(self):
         return f"{self._token.literal()}"
-    
+
     def literal(self) -> str:
         return self._token.literal()
-    
+
     def type(self) -> str:
         return self._token.type()
 
     def add_child(self, child: Self):
         self._children.append(child)
 
+    def update_child(self, new_child: Self, index: int):
+        self._children[index] = new_child
+
+    def has_children(self) -> bool:
+        return self._children is not None and len(self._children) > 0
+
+    def add_children(self, children: list[Self]):
+        self._children = children
+
     def children(self):
         return self._children
+
+    def getsymbols(self):
+        if not self.has_children():
+            if self.type() == TType.Sym:
+                return [self.literal()]
+            else:
+                return []
+
+        symbols = []
+        for child in self.children():
+            if child is None:
+                continue
+            child_sym = child.getsymbols()
+            for sym in child_sym:
+                if sym not in symbols:
+                    symbols.append(sym)
+
+        return symbols
 
     def tostring(self) -> str:
         if len(self._children) == 0:
             return f"{self._token._literal}"
-        args = [child.tostring() for child in self._children]
+        args = [child.tostring() for child in self._children if child is not None]
         string = f"{self._token._literal} ( "
         for index, arg in enumerate(args):
             if index + 1 < len(args):

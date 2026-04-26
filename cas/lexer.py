@@ -94,7 +94,7 @@ def gettokens(string: str) -> list[Token]:
     ** -> ^
     """
     string = string.replace(" ", "").replace("**", "^")
-    string = re.sub(r'\+{2,}', r'\+', string)
+    string = re.sub(r"\+{2,}", r"\+", string)
 
     matches = [
         match
@@ -108,9 +108,19 @@ def gettokens(string: str) -> list[Token]:
     for match in matches:
         if match in tokentype_map:
             tokens.append(Token(match, tokentype_map[match]))
-        elif re.match(r"\d*\.?\d+", match):
+        elif isnum(match):
             tokens.append(Token(match, TokenType.Num))
-        elif re.match(r"[a-zA-z]{1}", match):
+        elif issym(match):
             tokens.append(Token(match, TokenType.Sym))
 
     return tokens
+
+
+def isnum(string: str) -> bool:
+    match = re.match(r"\d*\.?\d*", string)
+    return match and match[0] == string
+
+
+def issym(string: str) -> bool:
+    match = re.match(r"[a-zA-z]{1}", string)
+    return match and match[0] == string
