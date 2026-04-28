@@ -3,6 +3,27 @@
 # pyCAS
 Mini Computer Algebra System using Python
 
+## Features
+
+- Mathematical expression parsing
+- Variable substitution with a number or variable
+- And soon(TM) more
+
+## Examples
+
+Create an Expression 
+
+```python3
+e = Expression.fromstr('3x+2')
+print(e) # + ( * ( 3, x ), 2 )
+```
+
+Substitute the variable in an expression
+
+```python3
+f = subs(e, 'x', 5)
+print(f) # + ( * ( 3, 5 ), 2 )
+```
 
 ## Tests
 

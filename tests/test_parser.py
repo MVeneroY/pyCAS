@@ -1,76 +1,71 @@
 import unittest
-from cas.lexer import str_to_tokens
-from cas.parser import _generate_factor as generate_factor
-from cas.parser import _generate_term as generate_term
-from cas.parser import _generate_expr as generate_expr
+from cas.lexer import gettokens
+from cas.parser import _parsetokens, _parse_term, _parse_factor
+
 
 class TestLexerMethods(unittest.TestCase):
+    def test_parsetokens(self):
+        self.assertEqual(
+            _parsetokens(gettokens("-1+4")).tostring(),
+            "+ ( * ( -1, 1 ), 4 )",
+        )
+        self.assertEqual(
+            _parsetokens(gettokens("3*x + 4")).tostring(),
+            "+ ( * ( 3, x ), 4 )",
+        )
+        self.assertEqual(
+            _parsetokens(gettokens("3 + x + y + 2x")).tostring(),
+            "+ ( 3, x, y, * ( 2, x ) )",
+        )
+        self.assertEqual(
+            _parsetokens(gettokens("-2 / -2 - 2")).tostring(),
+            "+ ( * ( -1, * ( 2, ^ ( * ( -1, 2 ), -1 ) ) ), * ( -1, 2 ) )",
+        )
+        self.assertEqual(
+            _parsetokens(gettokens("3x^2 + 2")).tostring(),
+            "+ ( * ( 3, ^ ( x, 2 ) ), 2 )",
+        )
 
-    def test_gen_factor(self):
-        self.assertEqual(
-            generate_factor(str_to_tokens('-2')).ops_to_string(),
-            'Mul( -1, 2 )'
-        )
-        self.assertEqual(
-            generate_factor(str_to_tokens('x ^ 7')).ops_to_string(),
-            'Pow( x, 7 )'
-        )
-        self.assertEqual(
-            generate_factor(str_to_tokens('-x**3')).ops_to_string(),
-            'Mul( -1, Pow( x, 3 ) )'
-        )
-        self.assertEqual(
-            generate_factor(str_to_tokens('2^x')).ops_to_string(),
-            'Pow( 2, x )'
-        )
-        self.assertEqual(
-            generate_factor(str_to_tokens('1')).ops_to_string(),
-            '1'
-        )
-        self.assertEqual(
-            generate_factor(str_to_tokens('y')).ops_to_string(),
-            'y'
-        )
-        
     def test_gen_term(self):
         self.assertEqual(
-            generate_term(str_to_tokens('2*x')).ops_to_string(),
-            'Mul( 2, x )'
+            _parse_term(gettokens("2*x")).tostring(), 
+            "* ( 2, x )"
         )
         self.assertEqual(
-            generate_term(str_to_tokens('2/x')).ops_to_string(),
-            'Div( 2, x )'
+            _parse_term(gettokens("2/x")).tostring(), 
+            "* ( 2, ^ ( x, -1 ) )"
         )
         self.assertEqual(
-            generate_term(str_to_tokens('2*x*3')).ops_to_string(),
-            'Mul( Mul( 2, x ), 3 )'
+            _parse_term(gettokens("2*x*3")).tostring(),
+            "* ( 2, x, 3 )",
         )
         self.assertEqual(
-            generate_term(str_to_tokens('-2 * x')).ops_to_string(),
-            'Mul( Mul( -1, 2 ), x )'
+            _parse_term(gettokens("-2 * x")).tostring(),
+            "* ( * ( -1, 2 ), x )",
         )
         self.assertEqual(
-            generate_term(str_to_tokens('x * -2')).ops_to_string(),
-            'Mul( x, Mul( -1, 2 ) )'
+            _parse_term(gettokens("x * -2")).tostring(),
+            "* ( x, * ( -1, 2 ) )",
         )
 
-    def test_gen_expr(self):
+    def test_parse_factor(self):
         self.assertEqual(
-            generate_expr(str_to_tokens('3*x + 4')).ops_to_string(),
-            'Add( Mul( 3, x ), 4 )'
+            _parse_factor(gettokens("2")).tostring(),
+            "2",
         )
         self.assertEqual(
-            generate_expr(str_to_tokens('3 + x')).ops_to_string(),
-            'Add( 3, x )'
+            _parse_factor(gettokens("x**3")).tostring(),
+            "^ ( x, 3 )",
         )
         self.assertEqual(
-            generate_expr(str_to_tokens('-2 / -2 - 2')).ops_to_string(),
-            'Sub( Div( Mul( -1, 2 ), Mul( -1, 2 ) ), 2 )'
+            _parse_factor(gettokens("3xy")).tostring(), 
+            "* ( 3, x, y )"
         )
         self.assertEqual(
-            generate_expr(str_to_tokens('3x^2 + 2')).ops_to_string(),
-            'Add( Mul( 3, Pow( x, 2 ) ), 2 )'
+            _parse_factor(gettokens("2cos(x)^8z")).tostring(),
+            "* ( 2, ^ ( cos ( x ), 8 ), z )",
         )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

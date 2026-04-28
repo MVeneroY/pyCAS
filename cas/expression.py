@@ -46,6 +46,9 @@ class Expression:
 
     def __repr__(self):
         return self._expression.tostring()
+    
+    def tostring(self):
+        return self.__repr__()
 
     def kind(self) -> TType:
         return self._kind

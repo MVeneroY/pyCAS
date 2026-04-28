@@ -6,6 +6,8 @@ from cas.ast_node import ASTNode
 from cas.lexer import gettokens, Token
 from cas.lexer import TokenType as TType
 
+DEBUG = 0
+
 
 def _parsetokens(tokens: list[Token]) -> ASTNode:
     """Parse tokens from an expression and return an AST tree
@@ -16,13 +18,16 @@ def _parsetokens(tokens: list[Token]) -> ASTNode:
     Returns:
         ASTNode: Head of the AST tree
     """
+    if DEBUG:
+        print("parse tokens:", [token.literal() for token in tokens])
+
     head: ASTNode = None
     pm_indices = [
         index
         for (index, token) in enumerate(tokens)
         if index > 0
         and is_pm(token)
-        and not is_pm(tokens[index - 1])
+        and not is_op(tokens[index - 1])
         and not token_inside_par(tokens, index)
     ]
 
@@ -40,7 +45,6 @@ def _parsetokens(tokens: list[Token]) -> ASTNode:
 
         # leading negative
         if tokens[0].type() == TType.Sub:
-            # print(f'a, {tokens[1:]=}')
             return neg_term(tokens[1:])
 
         # leading plus symbol
@@ -63,7 +67,8 @@ def _parsetokens(tokens: list[Token]) -> ASTNode:
             # account for leading -
             elif pm_index == -1 and tokens[0].type() == TType.Sub:
                 pm_index = pm_indices.pop(0)
-                head.add_child(neg_term(tokens[i:pm_index]))
+                head.add_child(neg_term(tokens[i + 1 : pm_index]))
+                i = pm_index + 1
             else:
                 if tokens[pm_index].type() == TType.Sub:
                     pm_index = pm_indices.pop(0)
@@ -91,6 +96,9 @@ def _parse_term(term: list[Token]) -> ASTNode:
     Returns:
         ASTNode: head of an AST tree
     """
+    if DEBUG:
+        print("parse term:", [token.literal() for token in term])
+
     md_indices = [
         index
         for (index, token) in enumerate(term)
@@ -148,6 +156,8 @@ def _parse_factor(factor: list[Token]) -> ASTNode:
     Returns:
         ASTNode: head of the AST tree
     """
+    if DEBUG:
+        print("parse factor:", [token.literal() for token in factor])
 
     """    
     Case: factor := (expr)
@@ -159,6 +169,11 @@ def _parse_factor(factor: list[Token]) -> ASTNode:
     """
     if is_func(factor):
         return func_term(factor)
+    """
+    Case: factor is negative
+    """
+    if factor[0].type() == TType.Sub:
+        return neg_term(factor[1:])
 
     if len(factor) == 1:
         return ASTNode(factor[0])
@@ -171,6 +186,13 @@ def _parse_factor(factor: list[Token]) -> ASTNode:
         for (index, token) in enumerate(factor)
         if token.type() == TType.Pow and not token_inside_par(factor, index)
     ]
+
+    if (
+        len(pow_ranges) == 1
+        and pow_ranges[0]["start"] == 0
+        and pow_ranges[0]["end"] == len(factor) - 1
+    ):
+        return pow_factor(factor, pow_ranges[0])
 
     head = ASTNode(Token("*", TType.Mul))
     i = 0
@@ -210,6 +232,9 @@ def neg_term(term: list[Token]) -> ASTNode:
     Returns:
         ASTNode: head of the AST tree
     """
+    if DEBUG:
+        print("neg term:", [token.literal() for token in term])
+
     head = ASTNode(Token("*", TType.Mul))
     head.add_child(ASTNode(Token("-1", TType.Num)))
     head.add_child(_parsetokens(term))
@@ -226,6 +251,9 @@ def pow_factor(expression: list[Token], range: dict[str, int]) -> ASTNode:
     Returns:
         ASTNode: head of the power tree
     """
+    if DEBUG:
+        print("pow factor:", [token.literal() for token in expression])
+
     assert range.keys() == set(["start", "end", "index"])
 
     start = range["start"]
@@ -246,8 +274,11 @@ def inverse_factor(factor: list[Token]) -> ASTNode:
     Returns:
         ASTNode: head of the AST tree
     """
+    if DEBUG:
+        print("inverse factor:", [token.literal() for token in factor])
+
     head = ASTNode(Token("^", TType.Div))
-    head.add_child(_parse_factor(factor))
+    head.add_child(_parsetokens(factor))
     head.add_child(ASTNode(Token("-1", TType.Num)))
     return head
 
@@ -262,6 +293,9 @@ def func_term(term: list[Token]) -> ASTNode:
     Returns:
         ASTNode: head of the AST tree
     """
+    if DEBUG:
+        print("func term:", [token.literal() for token in term])
+
     head = ASTNode(term[0])
     head.add_child(_parsetokens(term[1:]))
     return head
@@ -269,6 +303,16 @@ def func_term(term: list[Token]) -> ASTNode:
 
 def is_pm(token: Token) -> bool:
     return token.type() == TType.Add or token.type() == TType.Sub
+
+
+def is_op(token: Token) -> bool:
+    return (
+        is_pm(token)
+        or token.type() == TType.Mul
+        or token.type() == TType.Div
+        or token.type() == TType.Pow
+        or token.type() == TType.Rem
+    )
 
 
 def token_is_func(token: Token) -> bool:
