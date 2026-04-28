@@ -27,6 +27,9 @@ class ASTNode:
     def add_child(self, child: Self):
         self._children.append(child)
 
+    def remove_child(self, index: int):
+        self._children.pop(index)
+
     def update_child(self, new_child: Self, index: int):
         self._children[index] = new_child
 

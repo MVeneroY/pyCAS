@@ -176,6 +176,9 @@ def _parse_factor(factor: list[Token]) -> ASTNode:
         return neg_term(factor[1:])
 
     if len(factor) == 1:
+        if '.' in factor[0].literal():
+            return frac_num(factor[0])
+
         return ASTNode(factor[0])
 
     """
@@ -217,7 +220,7 @@ def _parse_factor(factor: list[Token]) -> ASTNode:
             i = end + 1
 
         else:
-            head.add_child(ASTNode(factor[i]))
+            head.add_child(ASTNode(factor[i]) if '.' not in factor[i].literal() else frac_num(factor[i]))
             i += 1
 
     return head
@@ -259,6 +262,12 @@ def pow_factor(expression: list[Token], range: dict[str, int]) -> ASTNode:
     start = range["start"]
     pow_index = range["index"]
     end = range["end"]
+
+    if DEBUG:
+        print(f'base: {[token.literal() for token in expression[start:pow_index]]}') 
+        print(f'power: {[token.literal() for token in expression[pow_index + 1 : end + 1]]}')
+
+
     head = ASTNode(expression[pow_index])
     head.add_child(_parsetokens(expression[start:pow_index]))
     head.add_child(_parsetokens(expression[pow_index + 1 : end + 1]))
@@ -300,6 +309,25 @@ def func_term(term: list[Token]) -> ASTNode:
     head.add_child(_parsetokens(term[1:]))
     return head
 
+def frac_num(token: Token) -> ASTNode:
+    """Produce the expression tree for a fraction derived from a decimal number
+
+    Args:
+        token (Token): Tokenized decimal number
+
+    Returns:
+        ASTNode: head of the frac AST tree
+    """
+    if DEBUG:
+        print("frac term:", token.literal())
+
+    num = token.literal().replace(".", "").lstrip("0")
+    denom = str(10 ** (len(token.literal()) - 2))
+
+    head = ASTNode(Token('frac', TType.Frac))
+    head.add_child(ASTNode(Token(num, TType.Num)))
+    head.add_child(ASTNode(Token(denom, TType.Num)))
+    return head
 
 def is_pm(token: Token) -> bool:
     return token.type() == TType.Add or token.type() == TType.Sub

@@ -40,3 +40,39 @@ def eval(expr: Expression) -> float | Exception:
     """
 
     pass
+
+'''
+Currently only supports addition and subtraction between constants
+'''
+def arithmetic_engine(expr: Expression) -> Expression:
+    expr2 = expr.copy()
+
+    kind = expr2.kind()
+    match kind:
+        case TType.Add:
+            resultant = 0
+            i_buffer = []
+
+            for index, child in enumerate(expr2._expression.children()):
+                if child.type() == TType.Num:
+                    resultant += float(child.literal())
+                    i_buffer.append(index)
+
+                # negative terms
+                elif (
+                    child.type() == TType.Mul
+                    and len(child.children()) == 2
+                    and child.children()[0].literal() == "-1"
+                ):
+                    resultant -= float(child.children()[1].literal())
+                    i_buffer.append(index)
+
+            if len(i_buffer) == len(expr2._expression.children()):
+                return ASTNode(Token(str(resultant), TType.Num))
+
+            for index in i_buffer[::-1]:
+                expr2._expression.remove_child(index)
+            expr2._expression.add_child(ASTNode(Token(str(resultant), TType.Num)))
+            return expr2
+        case _:
+            pass

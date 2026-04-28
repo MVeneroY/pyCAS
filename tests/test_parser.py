@@ -25,6 +25,14 @@ class TestLexerMethods(unittest.TestCase):
             _parsetokens(gettokens("3x^2 + 2")).tostring(),
             "+ ( * ( 3, ^ ( x, 2 ) ), 2 )",
         )
+        self.assertEqual(
+            _parsetokens(gettokens("3.2x^2 + 2.")).tostring(),
+            "+ ( * ( frac ( 32, 10 ), ^ ( x, 2 ) ), frac ( 2, 1 ) )",
+        )
+        self.assertEqual(
+            _parsetokens(gettokens("cos(3.5x) + x^4.9 / 0.5")).tostring(),
+            "+ ( cos ( * ( frac ( 35, 10 ), x ) ), * ( ^ ( x, frac ( 49, 10 ) ), ^ ( frac ( 5, 10 ), -1 ) ) )",
+        )
 
     def test_gen_term(self):
         self.assertEqual(
