@@ -41,10 +41,11 @@ def eval(expr: Expression) -> float | Exception:
 
     pass
 
-'''
-Currently only supports addition and subtraction between constants
-'''
+
 def arithmetic_engine(expr: Expression) -> Expression:
+    """
+    Currently only supports addition and subtraction between constants
+    """
     expr2 = expr.copy()
 
     kind = expr2.kind()
@@ -76,3 +77,94 @@ def arithmetic_engine(expr: Expression) -> Expression:
             return expr2
         case _:
             pass
+
+
+def numerator(head: ASTNode) -> int:
+    assert head.type() == TType.Frac
+    return int(head.children()[0].literal())
+
+
+def denominator(head: ASTNode) -> int:
+    assert head.type() == TType.Frac
+    return int(head.children()[1].literal())
+
+
+def gcd(n1: int, n2: int) -> int:
+    if n1 == 0 or n2 == 0:
+        return n1 + n2
+    return gcd(n2, n1 % n2)
+
+
+def lcd(n1: int, n2: int) -> int:
+    return int(n1 * n2 / gcd(n1, n2))
+
+
+def _frac_add(head1: ASTNode, head2: ASTNode) -> ASTNode:
+    assert head1.type() == TType.Frac and head2.type() == TType.Frac
+
+    num1 = numerator(head1)
+    den1 = denominator(head1)
+    num2 = numerator(head2)
+    den2 = denominator(head2)
+
+    if den1 != den2:
+        _lcd = lcd(den1, den2)
+        num1 *= int(_lcd / den1)
+        num2 *= int(_lcd / den2)
+        den1 = den2 = _lcd
+
+    res = ASTNode(Token("frac", TType.Frac))
+    res.add_child(ASTNode(Token(str(num1 + num2), TType.Num)))
+    res.add_child(ASTNode(Token(str(den1), TType.Num)))
+    return res
+
+
+def _simplify_frac(head: ASTNode) -> ASTNode:
+    # TODO: implement node object creation methods
+    res = ASTNode(Token("frac", TType.Frac))
+    n = numerator(head)
+    d = denominator(head)
+    _gcd = gcd(n, d)
+    if _gcd == 1:
+        return head
+
+    res.add_child(ASTNode(Token(str(int(n / _gcd)), TType.Num)))
+    res.add_child(ASTNode(Token(str(int(d / _gcd)), TType.Num)))
+    return res
+
+def _simplifymul(head: ASTNode) -> ASTNode:
+    """Transforms a multiplication node to contain only 1 coefficient or fraction
+    TODO: simplify nested multiplications e.g. * ( * (2, 3), 4, x ) -> * ( 24, x )
+    
+    Args:
+        head (ASTNode): head of multiplication node
+
+    Returns:
+        ASTNode: new multiplication node
+    """    
+    res = ASTNode.fromstr('*')
+
+    assert head.type() == TType.Mul
+    coefficient_num = 1
+    coefficient_den = 1
+
+    for child in head.children()[::-1]:
+        if child.type() == TType.Num:
+            coefficient_num *= int( child.literal() )
+        elif child.type() == TType.Pow and (gc:=child.children())[0].type() == TType.Num and gc[1].literal() == '-1':
+            coefficient_den *= int ( gc[0].literal() )
+        else:
+            print(child.literal())
+            res.add_child(child)
+
+    if coefficient_den == 1:
+        res.insert_child(0, ASTNode(Token(coefficient_num, TType.Num)))
+    else:
+        fnode = ASTNode.fromstr('frac')
+        fnode.add_child(ASTNode(Token(str(coefficient_num), TType.Num)))
+        fnode.add_child(ASTNode(Token(str(coefficient_den), TType.Num)))
+
+        if len(res.children()) == 0: return fnode
+        res.insert_child(0, _simplify_frac(fnode))
+
+    return res

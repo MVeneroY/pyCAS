@@ -48,6 +48,7 @@ tokentype_map = {
     "cos": TokenType.COS,
     "tan": TokenType.TAN,
     "sqrt": TokenType.SQRT,
+    "frac": TokenType.Frac
 }
 
 

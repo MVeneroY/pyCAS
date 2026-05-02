@@ -286,7 +286,7 @@ def inverse_factor(factor: list[Token]) -> ASTNode:
     if DEBUG:
         print("inverse factor:", [token.literal() for token in factor])
 
-    head = ASTNode(Token("^", TType.Div))
+    head = ASTNode(Token("^", TType.Pow))
     head.add_child(_parsetokens(factor))
     head.add_child(ASTNode(Token("-1", TType.Num)))
     return head

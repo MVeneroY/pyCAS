@@ -5,7 +5,7 @@ ast_node.py
 from typing_extensions import Self
 from cas.lexer import Token
 from cas.lexer import TokenType as TType
-
+from cas.lexer import tokentype_map
 
 class ASTNode:
     _token: Token
@@ -14,6 +14,10 @@ class ASTNode:
     def __init__(self, token: Token):
         self._token = token
         self._children = []
+
+    @classmethod
+    def fromstr(cls, string: str) -> Self:
+        return cls(Token(string, tokentype_map[string]))
 
     def __str__(self):
         return f"{self._token.literal()}"
@@ -26,6 +30,9 @@ class ASTNode:
 
     def add_child(self, child: Self):
         self._children.append(child)
+
+    def insert_child(self, index: int, child: Self):
+        self._children.insert(index, child)
 
     def remove_child(self, index: int):
         self._children.pop(index)
