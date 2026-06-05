@@ -21,6 +21,9 @@ class ASTNode:
 
     def __str__(self):
         return f"{self._token.literal()}"
+    
+    def __int__(self):
+        return int(self._token)
 
     def literal(self) -> str:
         return self._token.literal()

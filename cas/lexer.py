@@ -72,6 +72,10 @@ class Token:
         self._literal = literal
         self._type = type
 
+    def __int__(self) -> int:
+        assert self._type == TokenType.Num
+        return int(self._literal)
+
     def literal(self) -> str:
         return self._literal
 
