@@ -18,6 +18,16 @@ class ASTNode:
     @classmethod
     def fromstr(cls, string: str) -> Self:
         return cls(Token(string, tokentype_map[string]))
+    
+    @classmethod
+    def frac(cls, num: Self, den: Self) -> Self:
+        obj = cls.fromstr("frac")
+        obj.add_children([num, den])
+        return obj
+    
+    @classmethod
+    def number(cls, n: int) -> Self:
+        return cls(Token(str(n), TType.Num))
 
     def __str__(self):
         return f"{self._token.literal()}"
