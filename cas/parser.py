@@ -6,7 +6,7 @@ from cas.ast_node import ASTNode
 from cas.lexer import gettokens, Token
 from cas.lexer import TokenType as TType
 
-DEBUG = 0
+DEBUG = 1
 
 
 def _parsetokens(tokens: list[Token]) -> ASTNode:
