@@ -22,6 +22,10 @@ def fromnum(node: ASTNode) -> ASTNode:
     )
 
 
+def fromints(n: int, d: int) -> ASTNode:
+    return ASTNode.frac( ASTNode.number(n), ASTNode.number(d) )
+
+
 def numerator(head: ASTNode) -> int:
     assert head.type() == TType.Frac
     return int(head.children()[0].literal())
@@ -44,12 +48,7 @@ def add(head1: ASTNode, head2: ASTNode) -> ASTNode:
         denominator(head2)
     )
 
-    return ASTNode.frac(
-        ASTNode.number(
-            int(_lcd * (ratio(head1) + ratio(head2)))
-        ),
-        ASTNode.number(_lcd)
-    )
+    return fromints(round(_lcd * (ratio(head1) + ratio(head2))), _lcd)
 
 
 def nadd(*addends: ASTNode) -> ASTNode:
@@ -60,8 +59,8 @@ def nadd(*addends: ASTNode) -> ASTNode:
     _lcd = utils.nlcd(*[denominator(frac) for frac in addends])
     numerators = [numerator(frac) * int(_lcd / denominator(frac)) for frac in addends]
 
-    res = ASTNode.frac(
-        ASTNode.number(reduce(operator.add, numerators)), ASTNode.number(_lcd)
+    res = fromints(
+        reduce(operator.add, numerators), _lcd
     )
 
     return res
@@ -75,12 +74,22 @@ def sub(head1: ASTNode, head2: ASTNode) -> ASTNode:
         denominator(head2)
     )
 
-    return ASTNode.frac(
-        ASTNode.number(
-            int(_lcd * (ratio(head1) - ratio(head2)))
-        ),
-        ASTNode.number(_lcd)
-    )
+    res = fromints(round(_lcd * (ratio(head1) - ratio(head2))), _lcd)
+
+    if numerator(res) < 0 :
+        _res = ASTNode.fromstr('*')
+        _res.add_children([
+            ASTNode.number(-1),
+            fromints(
+                abs(numerator(res)),
+                denominator(res)
+            )
+        ])
+        res = _res
+    elif numerator(res) == 0:
+        res = ASTNode.number(0)
+
+    return res
 
 
 def _simplify(head: ASTNode) -> ASTNode:
@@ -89,6 +98,6 @@ def _simplify(head: ASTNode) -> ASTNode:
     if (_gcd := utils.gcd(num, den)) == 1:
         return head
 
-    res = ASTNode.frac(ASTNode.number(int(num / _gcd)), ASTNode.number(int(den / _gcd)))
+    res = fromints(num // _gcd, den // _gcd)
 
     return res
