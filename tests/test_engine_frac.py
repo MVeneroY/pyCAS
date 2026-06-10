@@ -6,7 +6,7 @@ from cas.expression import Expression
 class TestFracMethods(unittest.TestCase):
     def test_fromnum(self):
         num = ASTNode.number(3)
-        f = frac.fromnum(num)
+        f = frac.fromNum(num)
 
         self.assertEqual(
             f.tostring(),
@@ -36,8 +36,8 @@ class TestFracMethods(unittest.TestCase):
         )
 
     def test_sub(self):
-        f1 = frac.fromints(3,7)
-        f2 = frac.fromints(2,5)
+        f1 = frac.fromInts(3,7)
+        f2 = frac.fromInts(2,5)
 
         self.assertEqual(
             frac.sub(f1, f2).tostring(),
@@ -54,12 +54,37 @@ class TestFracMethods(unittest.TestCase):
             '* ( -1, frac ( 1, 35 ) )'
         )
 
-
     def test_simplify(self):
-        f = frac.fromints(24,60)
+        f = frac.fromInts(24,60)
         self.assertEqual(
             frac._simplify(f).tostring(),
             'frac ( 2, 5 )'
+        )
+
+    def test_prod(self):
+        f1 =  frac.fromInts(3,4)
+        f2 = frac.fromInts(5,3)
+
+        self.assertEqual(
+            frac.prod(f1, f2).tostring(),
+            'frac ( 15, 12 )'
+        )
+
+    def test_quot(self):
+        f1 =  frac.fromInts(3,4)
+        f2 = frac.fromInts(5,3)
+
+        self.assertEqual(
+            frac.quot(f1, f2).tostring(),
+            'frac ( 9, 20 )'
+        )
+
+    def test_ipow(self):
+        f = frac.fromInts(2,5)
+
+        self.assertEqual(
+            frac.ipow(f, ASTNode.number(4)).tostring(),
+            'frac ( 16, 625 )'
         )
 
 

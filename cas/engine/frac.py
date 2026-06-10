@@ -14,7 +14,7 @@ from ..lexer import TokenType as TType
 from functools import reduce
 import operator
 
-def fromnum(node: ASTNode) -> ASTNode:
+def fromNum(node: ASTNode) -> ASTNode:
     assert node.type() == TType.Num
     return ASTNode.frac(
         ASTNode.number(node.literal()),
@@ -22,7 +22,7 @@ def fromnum(node: ASTNode) -> ASTNode:
     )
 
 
-def fromints(n: int, d: int) -> ASTNode:
+def fromInts(n: int, d: int) -> ASTNode:
     return ASTNode.frac( ASTNode.number(n), ASTNode.number(d) )
 
 
@@ -36,7 +36,7 @@ def denominator(head: ASTNode) -> int:
     return int(head.children()[1].literal())
 
 
-def ratio(head: ASTNode) -> float:
+def fratio(head: ASTNode) -> float:
     return numerator(head) / denominator(head)
 
 
@@ -48,7 +48,7 @@ def add(head1: ASTNode, head2: ASTNode) -> ASTNode:
         denominator(head2)
     )
 
-    return fromints(round(_lcd * (ratio(head1) + ratio(head2))), _lcd)
+    return fromInts(round(_lcd * (fratio(head1) + fratio(head2))), _lcd)
 
 
 def nadd(*addends: ASTNode) -> ASTNode:
@@ -59,7 +59,7 @@ def nadd(*addends: ASTNode) -> ASTNode:
     _lcd = utils.nlcd(*[denominator(frac) for frac in addends])
     numerators = [numerator(frac) * int(_lcd / denominator(frac)) for frac in addends]
 
-    res = fromints(
+    res = fromInts(
         reduce(operator.add, numerators), _lcd
     )
 
@@ -74,13 +74,13 @@ def sub(head1: ASTNode, head2: ASTNode) -> ASTNode:
         denominator(head2)
     )
 
-    res = fromints(round(_lcd * (ratio(head1) - ratio(head2))), _lcd)
+    res = fromInts(round(_lcd * (fratio(head1) - fratio(head2))), _lcd)
 
     if numerator(res) < 0 :
         _res = ASTNode.fromstr('*')
         _res.add_children([
             ASTNode.number(-1),
-            fromints(
+            fromInts(
                 abs(numerator(res)),
                 denominator(res)
             )
@@ -92,12 +92,43 @@ def sub(head1: ASTNode, head2: ASTNode) -> ASTNode:
     return res
 
 
+def prod(f1: ASTNode, f2: ASTNode) -> ASTNode:
+    '''
+    Find the product between two positive Fraction trees
+    '''
+
+    return fromInts(
+        numerator(f1) * numerator(f2),
+        denominator(f1) * denominator(f2)
+    )
+
+
+def quot(f1: ASTNode, f2: ASTNode) -> ASTNode:
+
+    return fromInts(
+        numerator(f1) * denominator(f2),
+        denominator(f1) * numerator(f2)
+    )
+
+
+def ipow(f: ASTNode, p: ASTNode) -> ASTNode:
+    '''
+    Find the power of a positive fraction tree. To be a private function
+    '''
+    assert p.type() == TType.Num
+
+    return fromInts(
+        numerator(f) ** int(p),
+        denominator(f) ** int(p)
+    )
+
+
 def _simplify(head: ASTNode) -> ASTNode:
     num = numerator(head)
     den = denominator(head)
     if (_gcd := utils.gcd(num, den)) == 1:
         return head
 
-    res = fromints(num // _gcd, den // _gcd)
+    res = fromInts(num // _gcd, den // _gcd)
 
     return res
