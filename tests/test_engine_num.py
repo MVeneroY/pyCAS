@@ -19,7 +19,6 @@ class TestNumMethods(unittest.TestCase):
     def test_nadd(self):
         pass
     
-    @unittest.skip("Not implemented yet")
     def test_sub(self):
         n1 = ASTNode.number(3)
         n2 = ASTNode.number(1)
@@ -35,11 +34,10 @@ class TestNumMethods(unittest.TestCase):
         )
 
         self.assertEqual(
-            frac.sub(n2, n1).tostring(),
+            num.sub(n2, n1).tostring(),
             '* ( -1, 2 )'
         )
 
-    @unittest.skip("Not implemented yet")
     def test_prod(self):
         n1 = ASTNode.number(4)
         n2 = ASTNode.number(6)
@@ -62,13 +60,12 @@ class TestNumMethods(unittest.TestCase):
             'frac ( 9, 20 )'
         )
 
-    @unittest.skip("Not implemented yet")
     def test_ipow(self):
         n = ASTNode.number(3)
         p = ASTNode.number(4)
 
         self.assertEqual(
-            frac.ipow(n, p).tostring(),
+            num.ipow(n, p).tostring(),
             '81'
         )
 

@@ -6,7 +6,7 @@ from cas.ast_node import ASTNode
 from cas.lexer import gettokens, Token
 from cas.lexer import TokenType as TType
 
-DEBUG = 1
+DEBUG = 0
 
 
 def _parsetokens(tokens: list[Token]) -> ASTNode:
@@ -309,6 +309,7 @@ def func_term(term: list[Token]) -> ASTNode:
     head.add_child(_parsetokens(term[1:]))
     return head
 
+
 def frac_num(token: Token) -> ASTNode:
     """Produce the expression tree for a fraction derived from a decimal number
 
@@ -328,6 +329,7 @@ def frac_num(token: Token) -> ASTNode:
     head.add_child(ASTNode(Token(num, TType.Num)))
     head.add_child(ASTNode(Token(denom, TType.Num)))
     return head
+
 
 def is_pm(token: Token) -> bool:
     return token.type() == TType.Add or token.type() == TType.Sub

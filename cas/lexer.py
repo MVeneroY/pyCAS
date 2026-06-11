@@ -52,18 +52,6 @@ tokentype_map = {
 }
 
 
-class Symbol:
-    namespace = None
-
-    def __init__(self):
-        self.namespace = []
-
-    def symbols(string: str) -> None:
-        for symbol in string.split():
-            if symbol not in Symbol.namespace:
-                Symbol.namespace.append(symbol)
-
-
 class Token:
     _literal: str
     _type: TokenType
