@@ -18,6 +18,17 @@ e = Expression.fromstr('3x+2')
 print(e) # + ( * ( 3, x ), 2 )
 ```
 
+Visualize the expression tree
+
+```python3
+from cas import graphing
+
+graph = graphing.gv_tree(e._expression)
+graphing.view(graph)
+```
+
+![image](docs/example.png)
+
 Substitute the variable in an expression
 
 ```python3

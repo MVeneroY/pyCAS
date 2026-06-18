@@ -6,7 +6,7 @@ from .ast_node import ASTNode
 
 
 def gv_tree(head: ASTNode) -> graphviz.Digraph:
-    graph = graphviz.Digraph()
+    graph = graphviz.Digraph(format='png')
 
     def traverse_tree(curr: ASTNode, parent=None):
         curr_id = gen_id()
