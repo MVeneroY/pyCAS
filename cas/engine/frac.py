@@ -123,7 +123,7 @@ def ipow(f: ASTNode, p: ASTNode) -> ASTNode:
     )
 
 
-def _simplify(head: ASTNode) -> ASTNode:
+def simplify(head: ASTNode, keep_frac: bool = True) -> ASTNode:
     num = numerator(head)
     den = denominator(head)
     if (_gcd := utils.gcd(num, den)) == 1:
@@ -131,4 +131,6 @@ def _simplify(head: ASTNode) -> ASTNode:
 
     res = fromInts(num // _gcd, den // _gcd)
 
+    if not keep_frac and denominator(res) == 1:
+        return res.children()[0]
     return res

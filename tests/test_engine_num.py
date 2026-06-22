@@ -15,9 +15,13 @@ class TestNumMethods(unittest.TestCase):
             '8'
         )
 
-    @unittest.skip("Might not be implemented")
     def test_nadd(self):
-        pass
+        nums = [ASTNode.number(n) for n in range(1,10)]
+
+        self.assertEqual(
+            num.nadd(nums).tostring(),
+            '45'
+        )
     
     def test_sub(self):
         n1 = ASTNode.number(3)
@@ -47,17 +51,27 @@ class TestNumMethods(unittest.TestCase):
             '24'
         )
 
-    @unittest.skip("Not implemented yet")
-    def test_quot(self):
-        '''
-        TODO: consider different scenarios e.g. division by 0, modulo, remainder, etc
-        '''
-        f1 =  frac.fromInts(3,4)
-        f2 = frac.fromInts(5,3)
+    def test_iquot(self):
+        n1 = ASTNode.number(4)
+        n2 = ASTNode.number(3)
 
         self.assertEqual(
-            frac.quot(f1, f2).tostring(),
-            'frac ( 9, 20 )'
+            num.iquot(n1, n2).tostring(),
+            '1'
+        )
+
+    def test_div(self):
+        n1 =  ASTNode.number(3)
+        n2 = ASTNode.number(6)
+
+        self.assertEqual(
+            num.div(n1, n2).tostring(),
+            'frac ( 1, 2 )'
+        )
+
+        self.assertEqual(
+            num.div(n2, n1).tostring(),
+            '2'
         )
 
     def test_ipow(self):

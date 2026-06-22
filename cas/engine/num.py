@@ -1,6 +1,8 @@
 """Functions involving Num Nodes"""
 
 from ..ast_node import ASTNode
+from . import frac
+from functools import reduce
 
 
 def neg(head: ASTNode) -> ASTNode:
@@ -17,6 +19,10 @@ def neg(head: ASTNode) -> ASTNode:
 
 def add(n1: ASTNode, n2: ASTNode) -> ASTNode:
     return ASTNode.number(int(n1) + int(n2))
+
+
+def nadd(operands: list[ASTNode]) -> ASTNode:
+    return ASTNode.number(reduce(add, operands))
 
 
 def sub(n1: ASTNode, n2: ASTNode):
@@ -41,12 +47,12 @@ def iquot(n1: ASTNode, n2: ASTNode) -> ASTNode:
     return ASTNode.number(int(n1) // int(n2))
 
 
-def fquot(n1: ASTNode, n2: ASTNode) -> ASTNode:
-    """
-    Find the fraction quotient of positive integers n1 and n2
-    """
+def div(n1: ASTNode, n2:ASTNode) -> ASTNode:
+    '''
+    Return an integer or frac node equivalent to n1 / n2
+    '''
 
-    return ASTNode.frac(n1, n2)
+    return frac.simplify(frac.fromInts(n1, n2), keep_frac=False)
 
 
 def rem(n1: ASTNode, n2: ASTNode) -> ASTNode:

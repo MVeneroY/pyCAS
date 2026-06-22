@@ -57,7 +57,7 @@ class TestFracMethods(unittest.TestCase):
     def test_simplify(self):
         f = frac.fromInts(24,60)
         self.assertEqual(
-            frac._simplify(f).tostring(),
+            frac.simplify(f).tostring(),
             'frac ( 2, 5 )'
         )
 
