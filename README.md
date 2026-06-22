@@ -6,6 +6,7 @@ Mini Computer Algebra System using Python
 ## Features
 
 - Mathematical expression parsing
+- Expression tree visualization
 - Variable substitution with a number or variable
 - And soon(TM) more
 
@@ -23,7 +24,7 @@ Visualize the expression tree
 ```python3
 from cas import graphing
 
-graph = graphing.gv_tree(e._expression)
+graph = graphing.fromExpr(e)
 graphing.view(graph)
 ```
 

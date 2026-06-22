@@ -3,9 +3,10 @@ import uuid
 import tempfile
 
 from .ast_node import ASTNode
+from .expression import Expression
 
 
-def gv_tree(head: ASTNode) -> graphviz.Digraph:
+def fromNode(head: ASTNode) -> graphviz.Digraph:
     graph = graphviz.Digraph(format='png')
 
     def traverse_tree(curr: ASTNode, parent=None):
@@ -23,6 +24,10 @@ def gv_tree(head: ASTNode) -> graphviz.Digraph:
 
     traverse_tree(head)
     return graph
+
+
+def fromExpr(exp: Expression) -> graphviz.Digraph:
+    return fromNode(exp._expression)
 
 
 def view(graph: graphviz.Digraph, dir: str = "graphs/"):
