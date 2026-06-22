@@ -213,3 +213,6 @@ graphs/
 *.dockerfile
 *.gv
 *.pdf
+
+# Jupyter Notebooks
+*.ipynb

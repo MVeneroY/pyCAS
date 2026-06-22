@@ -22,6 +22,10 @@ def fromNum(node: ASTNode) -> ASTNode:
     )
 
 
+def fromNodes(n: ASTNode, d: ASTNode) -> ASTNode:
+    return ASTNode.frac(n, d)
+
+
 def fromInts(n: int, d: int) -> ASTNode:
     return ASTNode.frac( ASTNode.number(n), ASTNode.number(d) )
 
@@ -51,12 +55,12 @@ def add(head1: ASTNode, head2: ASTNode) -> ASTNode:
     return fromInts(round(_lcd * (fratio(head1) + fratio(head2))), _lcd)
 
 
-def nadd(*addends: ASTNode) -> ASTNode:
+def nadd(addends: ASTNode) -> ASTNode:
     """
     n-ary fraction addition
     """
 
-    _lcd = utils.nlcd(*[denominator(frac) for frac in addends])
+    _lcd = utils.nlcd([denominator(frac) for frac in addends])
     numerators = [numerator(frac) * int(_lcd / denominator(frac)) for frac in addends]
 
     res = fromInts(
@@ -101,6 +105,10 @@ def prod(f1: ASTNode, f2: ASTNode) -> ASTNode:
         numerator(f1) * numerator(f2),
         denominator(f1) * denominator(f2)
     )
+
+
+def nprod(operands: list[ASTNode]) -> ASTNode:
+    return reduce(prod, operands)
 
 
 def quot(f1: ASTNode, f2: ASTNode) -> ASTNode:

@@ -61,6 +61,12 @@ class ASTNode:
 
     def children(self):
         return self._children
+    
+    def getChild(self, index: int) -> Self | IndexError:
+        if index < len(self._children):
+            return self._children[index]
+
+        return IndexError 
 
     def getsymbols(self):
         if not self.has_children():

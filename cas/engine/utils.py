@@ -11,9 +11,9 @@ def lcd(n1: int, n2: int) -> int:
     return (n1 * n2) // gcd(n1, n2)
 
 
-def ngcd(*operands: int) -> int:
+def ngcd(operands: list[int]) -> int:
     return reduce(gcd, operands)
 
 
-def nlcd(*operands: int) -> int:
+def nlcd(operands: list[int]) -> int:
     return reduce(lcd, operands)

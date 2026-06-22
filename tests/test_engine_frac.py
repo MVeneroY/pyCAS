@@ -24,10 +24,12 @@ class TestFracMethods(unittest.TestCase):
 
     def test_nadd(self):
         f = frac.nadd(
-        ASTNode.frac(ASTNode.number(2), ASTNode.number(3)),
-        ASTNode.frac(ASTNode.number(5), ASTNode.number(7)),
-        ASTNode.frac(ASTNode.number(4), ASTNode.number(13)),
-        ASTNode.frac(ASTNode.number(6), ASTNode.number(5))
+        [
+            ASTNode.frac(ASTNode.number(2), ASTNode.number(3)),
+            ASTNode.frac(ASTNode.number(5), ASTNode.number(7)),
+            ASTNode.frac(ASTNode.number(4), ASTNode.number(13)),
+            ASTNode.frac(ASTNode.number(6), ASTNode.number(5))
+        ]
         )
 
         self.assertEqual(

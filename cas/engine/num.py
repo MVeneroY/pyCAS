@@ -39,6 +39,10 @@ def prod(n1: ASTNode, n2: ASTNode) -> ASTNode:
     return ASTNode.number(int(n1) * int(n2))
 
 
+def nprod(operands: list[ASTNode]) -> ASTNode:
+    return reduce(prod, operands)
+
+
 def iquot(n1: ASTNode, n2: ASTNode) -> ASTNode:
     """
     Find the integer quotient of positive integers n1 and n2 (n1 // n2)
