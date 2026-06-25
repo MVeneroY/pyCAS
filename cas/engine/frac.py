@@ -131,6 +131,13 @@ def ipow(f: ASTNode, p: ASTNode) -> ASTNode:
     )
 
 
+def reciprocal(f: ASTNode) -> ASTNode:
+    return fromInts(
+        denominator(f),
+        numerator(f)
+    )
+
+
 def simplify(head: ASTNode, keep_frac: bool = True) -> ASTNode:
     num = numerator(head)
     den = denominator(head)

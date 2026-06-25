@@ -67,7 +67,7 @@ def rem(n1: ASTNode, n2: ASTNode) -> ASTNode:
     return ASTNode.number(int(n1) % int(n2))
 
 
-def ipow(n, p):
+def ipow(n: ASTNode, p: ASTNode):
     """
     Find the power of two positive num nodes
     """

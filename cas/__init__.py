@@ -1,3 +1,3 @@
 from .lexer import Token, TokenType
 from .expression import Expression
-from . import engine
+from .engine import simplify

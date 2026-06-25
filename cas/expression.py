@@ -1,5 +1,8 @@
 """
 expression.py
+
+To Consider:
+remove tokenlist variables from Expression.__init__
 """
 
 from .ast_node import ASTNode
@@ -24,6 +27,10 @@ class Expression:
             self._syms = symbols
         else:
             self._syms = node.getsymbols()
+
+    @classmethod
+    def fromNode(cls, node: ASTNode) -> Self:
+        return cls(node)
 
     @classmethod
     def fromtokens(cls, tokens: list[Token]) -> Self:

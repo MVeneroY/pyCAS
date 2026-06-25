@@ -39,7 +39,7 @@ def _parsetokens(tokens: list[Token]) -> ASTNode:
         if (
             len(tokens) > 1
             and tokens[0].type() == TType.LPAR
-            and tokens[-1].type() == TType.RPAR
+            and find_closing_par(tokens) == len(tokens) - 1
         ):
             return _parsetokens(tokens[1:-1])
 
