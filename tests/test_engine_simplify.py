@@ -22,3 +22,12 @@ class TestSimplifyMethods(unittest.TestCase):
             simplify.arithmeticEval(b).tostring(),
             '47'
         )
+
+    def test_addLikeTerms(self):
+        a = Expression.fromstr("2 * x * y^2 * x * 4 + 2 * y^2 * x^2")
+
+        result = simplify.addLikeTerms(a._expression.children())
+        self.assertEqual(
+            result.tostring(),
+            '* ( 10, * ( ^ ( x, 2 ), ^ ( y, 2 ) ) )'
+        )
